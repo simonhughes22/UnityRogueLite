@@ -22,7 +22,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] public GameObject projectilePrefab;
     [SerializeField] public GameObject roomPrefab;
 
-    [SerializeField] public float speed;
+    [SerializeField] public float speed = 6f;
     [SerializeField] public float projectileSpeed = 300.0f;
     [SerializeField] public float maxHealth = 10f;
 

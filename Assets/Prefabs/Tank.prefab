@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 6049629836814456386}
   - component: {fileID: 6049629836814456385}
   m_Layer: 0
-  m_Name: Player
+  m_Name: Tank
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -150,6 +150,9 @@ MonoBehaviour:
   speed: 6
   projectileSpeed: 10
   maxHealth: 10
+  numberOfRooms: 10
+  roomWidth: 16
+  roomHeight: 8.5
 --- !u!95 &6049629836814456385
 Animator:
   serializedVersion: 3
