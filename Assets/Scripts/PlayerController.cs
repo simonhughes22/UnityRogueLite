@@ -15,7 +15,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 lastNonZeroChange = new Vector3(1,0);
     private bool firePressed = false;
     private float currentHealth;
-    private System.Random random = new System.Random();
+    private System.Random random = new System.Random(1234);
 
     private AudioSource audioSource;
 
@@ -40,7 +40,7 @@ public class PlayerController : MonoBehaviour
         currentHealth = maxHealth;
         audioSource = GetComponent<AudioSource>();
 
-        //SpawnRooms(numberOfRooms);
+        SpawnRooms(numberOfRooms);
         // start camera on player
         Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, Camera.main.transform.position.z);
     }
@@ -91,60 +91,66 @@ public class PlayerController : MonoBehaviour
             );
         }        
     }
-    
+
+    private Tuple<int,int> roomToOffset(GameObject room)
+    {
+        Vector3 pos = room.transform.position;
+        Vector3 diff = pos - transform.position;
+        return new Tuple<int, int>((int)(diff.x / roomWidth), (int)(diff.y / roomHeight));
+    }
 
     private void SpawnRooms(int numberOfRooms)
     {
         DestroyExistingRooms();
-
-        HashSet<Vector2> roomPositions = new HashSet<Vector2>();
+        HashSet<Tuple<int, int>> roomPositions = new HashSet<Tuple<int, int>>();
         for (int i = 0; i < numberOfRooms; i++)
         {
             Vector2 position;
             if (rooms.Count == 0)
             {
                 position = rigidbody2d.position;
+                roomPositions.Add(new Tuple<int, int>(0, 0));
             }
             else
             {
-                position = GetNextRoomPosition(roomPositions);
-                if (position == Vector2.zero)
-                {
-                    // can't add any more rooms
+                Tuple<int, int> offset = GetNextRoomPosition(roomPositions);
+                if (offset == null)
+                {   // can't add any more rooms
                     break;
                 }
+                position = new Vector2(transform.position.x + offset.Item1 * roomWidth, transform.position.y + offset.Item2 * roomHeight);
+                roomPositions.Add(offset);
             }
             GameObject newRoom = Instantiate(roomPrefab, position, Quaternion.identity);
-            rooms.Add(newRoom);
-            roomPositions.Add(position);
+            rooms.Add(newRoom);            
         }
 
-        CloseExternalDoors(roomPositions);
+        CloseExternalDoors(roomPositions);        
     }
 
-    private void CloseExternalDoors(HashSet<Vector2> roomPositions)
+    private void CloseExternalDoors(HashSet<Tuple<int, int>> roomPositions)
     {
         foreach (GameObject room in rooms)
         {
-            Vector2 pos = room.transform.position;
+            Tuple<int, int> pos = roomToOffset(room);
             RoomController rC = room.GetComponent<RoomController>();
-            List<Vector2> adjPositions = GetEmptyAdjacentRoomPositions(room, roomPositions);
-            foreach (Vector2 adJpos in adjPositions)
+            List<Tuple<int, int>> adjPositions = GetEmptyAdjacentRoomPositions(room, roomPositions);
+            foreach (Tuple<int, int> adJpos in adjPositions)
             {
-                if (adJpos.x < pos.x)
+                if (adJpos.Item1 < pos.Item1)
                 {
                     // open to the left
                     rC.DoorLeft.SetActive(true);
                 }
-                else if(adJpos.x > pos.x)
+                else if(adJpos.Item1 > pos.Item1)
                 {
                     rC.DoorRight.SetActive(true);
                 }
-                else if (adJpos.y < pos.y)
+                else if (adJpos.Item2 < pos.Item2)
                 {
                     rC.DoorBottom.SetActive(true);
                 }
-                else if (adJpos.y > pos.y)
+                else if (adJpos.Item2 > pos.Item2)
                 {
                     rC.DoorTop.SetActive(true);
                 }
@@ -161,7 +167,7 @@ public class PlayerController : MonoBehaviour
         rooms.Clear();
     }
 
-    private Vector2 GetNextRoomPosition(HashSet<Vector2> roomPositions)
+    private Tuple<int, int> GetNextRoomPosition(HashSet<Tuple<int, int>> roomPositions)
     {
         // copy rooms, before shuffling
         List<GameObject> rms = rooms.ToList();
@@ -169,33 +175,33 @@ public class PlayerController : MonoBehaviour
 
         foreach (GameObject room in rms)
         {            
-            List<Vector2> adjPositions = GetEmptyAdjacentRoomPositions(room, roomPositions);
+            List<Tuple<int, int>> adjPositions = GetEmptyAdjacentRoomPositions(room, roomPositions);
             if (adjPositions.Count > 0)
             {                
                 return adjPositions[random.Next(adjPositions.Count)];                
             }
 
         }
-        return Vector2.zero;
+        return null;
     }
 
-    private List<Vector2> GetEmptyAdjacentRoomPositions(GameObject room, HashSet<Vector2> roomPositions)
+    private List<Tuple<int,int>> GetEmptyAdjacentRoomPositions(GameObject room, HashSet<Tuple<int, int>> roomPositions)
     {
-        Vector2 roomPosition = room.transform.position;
+        Tuple<int, int> rPos = roomToOffset(room);
         // pick a random direction
-        Vector2[] positions = new Vector2[] {
+        Tuple<int,int>[] positions = new Tuple<int, int>[] {
                     // right
-                    new Vector2(roomPosition.x + roomWidth, roomPosition.y),
+                    new Tuple<int,int>( 1 + rPos.Item1,  rPos.Item2),
                     // left
-                    new Vector2(roomPosition.x - roomWidth, roomPosition.y),
+                    new Tuple<int,int>(-1 + rPos.Item1, rPos.Item2),
                     // top
-                    new Vector2(roomPosition.x, roomPosition.y + roomHeight),
+                    new Tuple<int,int>(rPos.Item1,  1 + rPos.Item2),
                     // bottom
-                    new Vector2(roomPosition.x, roomPosition.y - roomHeight)
+                    new Tuple<int,int>(rPos.Item1, -1 + rPos.Item2),
                 };
 
-        List<Vector2> possiblePositions = new List<Vector2>();
-        foreach (Vector2 pos in positions)
+        List<Tuple<int, int>> possiblePositions = new List<Tuple<int, int>>();
+        foreach (Tuple<int, int> pos in positions)
         {
             if (false == roomPositions.Contains(pos))
             {
