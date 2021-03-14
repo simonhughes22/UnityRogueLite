@@ -27,8 +27,8 @@ public class PlayerController : MonoBehaviour
     [SerializeField] public float maxHealth = 10f;
 
     [SerializeField] public int numberOfRooms = 10;
-    [SerializeField] public float roomWidth = 11.5f;
-    [SerializeField] public float roomHeight = 11.5f;
+    [SerializeField] public float roomWidth = 16f;
+    [SerializeField] public float roomHeight = 8.5f;
 
     private List<GameObject> rooms = new List<GameObject>();
 
@@ -38,7 +38,11 @@ public class PlayerController : MonoBehaviour
         rigidbody2d = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         currentHealth = maxHealth;
-        audioSource = GetComponent<AudioSource>();        
+        audioSource = GetComponent<AudioSource>();
+
+        //SpawnRooms(numberOfRooms);
+        // start camera on player
+        Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, Camera.main.transform.position.z);
     }
 
     private void Update()
@@ -177,17 +181,17 @@ public class PlayerController : MonoBehaviour
 
     private List<Vector2> GetEmptyAdjacentRoomPositions(GameObject room, HashSet<Vector2> roomPositions)
     {
-        Vector2 lastPosition = room.transform.position;
+        Vector2 roomPosition = room.transform.position;
         // pick a random direction
         Vector2[] positions = new Vector2[] {
                     // right
-                    new Vector2(lastPosition.x + roomWidth, lastPosition.y),
+                    new Vector2(roomPosition.x + roomWidth, roomPosition.y),
                     // left
-                    new Vector2(lastPosition.x - roomWidth, lastPosition.y),
+                    new Vector2(roomPosition.x - roomWidth, roomPosition.y),
                     // top
-                    new Vector2(lastPosition.x, lastPosition.y + roomHeight),
+                    new Vector2(roomPosition.x, roomPosition.y + roomHeight),
                     // bottom
-                    new Vector2(lastPosition.x, lastPosition.y - roomHeight)
+                    new Vector2(roomPosition.x, roomPosition.y - roomHeight)
                 };
 
         List<Vector2> possiblePositions = new List<Vector2>();

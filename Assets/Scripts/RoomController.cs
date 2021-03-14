@@ -8,17 +8,13 @@ public class RoomController : MonoBehaviour
     [SerializeField] public GameObject DoorLeft;
     [SerializeField] public GameObject DoorRight;
     [SerializeField] public GameObject DoorTop;
-    [SerializeField] public GameObject DoorBottom;
+    [SerializeField] public GameObject DoorBottom;   
 
-    // Start is called before the first frame update
-    void Start()
+    private void OnTriggerEnter2D(Collider2D collision)
     {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        if (collision.CompareTag("Player"))
+        {            
+            Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, Camera.main.transform.position.z);
+        }
     }
 }
