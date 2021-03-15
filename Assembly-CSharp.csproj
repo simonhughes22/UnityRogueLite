@@ -64,6 +64,7 @@
     <Compile Include="Assets/Scripts/RoomCreator.cs" />
     <Compile Include="Assets/Scripts/DoorController.cs" />
     <Compile Include="Assets/Scripts/EnemyGhostController.cs" />
+    <Compile Include="Assets/Scripts/HealthBar.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
