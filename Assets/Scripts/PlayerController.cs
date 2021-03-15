@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
+using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour
 {
@@ -17,10 +17,7 @@ public class PlayerController : MonoBehaviour
 
     private bool firePressed = false;            
     private bool moving = false;
-    private bool facingForward = true;
-
-    private float currentHealth;
-    [SerializeField] public float maxHealth = 5;
+    private bool facingForward = true;    
 
     [SerializeField] public GameObject projectilePrefab;
     [SerializeField] public GameObject roomPrefab;
@@ -44,7 +41,6 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
-        currentHealth = maxHealth;
         
         // start camera on player
         Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, Camera.main.transform.position.z);
@@ -168,13 +164,17 @@ public class PlayerController : MonoBehaviour
     {
         if (collision.gameObject.CompareTag("Enemy"))
         {
-            currentHealth -= 1;
+            GameState.Instance.PlayerHealth -= 1;
             PlaySound(playerHitSound);
 
             // knockback - use move towards with a negative amount
             Vector2 change = Vector2.MoveTowards(transform.position, collision.gameObject.transform.position, -50f * Time.deltaTime);
             transform.position = change;
         }
-        //TODO Game Over if currentHealth is 0
+
+        if (GameState.Instance.PlayerHealth <= 0)
+        {
+            SceneManager.LoadScene("GameOver", LoadSceneMode.Single);
+        }
     }
 }

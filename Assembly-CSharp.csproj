@@ -65,6 +65,7 @@
     <Compile Include="Assets/Scripts/DoorController.cs" />
     <Compile Include="Assets/Scripts/EnemyGhostController.cs" />
     <Compile Include="Assets/Scripts/HealthBar.cs" />
+    <Compile Include="Assets/Scripts/GameState.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
