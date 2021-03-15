@@ -6,3 +6,5 @@ Temp/*
 .vs/*
 
 Library
+.DS_Store
+*.sln
