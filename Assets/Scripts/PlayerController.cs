@@ -7,48 +7,69 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    private Rigidbody2D rigidbody2d;
-    private Animator animator;
-    private Vector3 change = Vector3.zero;
+    private Rigidbody2D rb;
+    private Animator anim;
+    private AudioSource audioSource;    
 
     // need to initialize to non zero as used to get the facing direction
-    private Vector3 lastNonZeroChange = new Vector3(1,0);
-    private bool firePressed = false;
-    private float currentHealth;
-    private System.Random random = new System.Random(1234);
+    private Vector3 lookDirection = new Vector3(1,0);
+    private Vector3 change = Vector3.zero;
 
-    private AudioSource audioSource;
+    private bool firePressed = false;            
+    private bool moving = false;
+    private bool facingForward = true;
+
+    private float currentHealth;
+    [SerializeField] public float maxHealth = 5;
 
     [SerializeField] public GameObject projectilePrefab;
     [SerializeField] public GameObject roomPrefab;
 
-    [SerializeField] public float speed = 6f;
-    [SerializeField] public float projectileSpeed = 300.0f;
-    [SerializeField] public float maxHealth = 10f;
+    [SerializeField] public AudioClip zapSound;
+    [SerializeField] public AudioClip playerHitSound;
 
+    [SerializeField] public float speed = 6f;
+    [SerializeField] public float projectileSpeed = 10.0f;
+    [SerializeField] public float projectileScaleMultiplier = 2.0f;
+    
     [SerializeField] public int numberOfRooms = 10;
     [SerializeField] public float roomWidth = 16f;
     [SerializeField] public float roomHeight = 8.5f;
 
-    private List<GameObject> rooms = new List<GameObject>();
+    private RoomCreator roomCreator;
 
     // Start is called before the first frame update
     void Start()
     {
-        rigidbody2d = GetComponent<Rigidbody2D>();
-        animator = GetComponent<Animator>();
-        currentHealth = maxHealth;
+        rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
         audioSource = GetComponent<AudioSource>();
-
-        SpawnRooms(numberOfRooms);
+        currentHealth = maxHealth;
+        
         // start camera on player
         Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, Camera.main.transform.position.z);
+        roomCreator = new RoomCreator(this.gameObject, this.roomPrefab, this.roomWidth, this.roomHeight);
+        roomCreator.SpawnRooms(numberOfRooms);
+    }
+
+    public GameObject CreateRoom(Vector2 position)
+    {
+        return Instantiate(roomPrefab, position, Quaternion.identity);
+    }
+
+    public void DestroyRooms(List<GameObject> rooms)
+    {
+        foreach (GameObject room in rooms)
+        {
+            Destroy(room);
+        }
+        rooms.Clear();
     }
 
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.R)) {
-            SpawnRooms(numberOfRooms);
+            roomCreator.SpawnRooms(numberOfRooms);
         }
 
         GetInput();
@@ -59,184 +80,101 @@ public class PlayerController : MonoBehaviour
     {
         Movement();
     }
+  
+    private void Movement()
+    {
+        Vector3 scale = transform.localScale;
+        if (facingForward)
+        {
+            transform.localScale = new Vector3(Math.Abs(scale.x), scale.y, scale.z);
+        }
+        else
+        {
+            transform.localScale = new Vector3(-1.0f * Math.Abs(scale.x), scale.y, scale.z);
+        }
+        
+        if (change != Vector3.zero)
+        {
+            rb.MovePosition(
+                transform.position + change * speed * Time.deltaTime
+            );
+        }        
+    }
 
     private void GetInput()
     {
-        firePressed = Input.GetKeyDown(KeyCode.Space);        
-        
+        moving = false;
+        firePressed = Input.GetKeyDown(KeyCode.Space);
+
         change = Vector3.zero;
         change.x = Input.GetAxisRaw("Horizontal");
         // prevent moving along diagonal by forcing only one direction
         if (change.x == 0f)
         {
             change.y = Input.GetAxisRaw("Vertical");
-        }       
+        }
+
+        if (change.x > 0f)
+        {
+            facingForward = true;
+        }
+        else if (change.x < 0f)
+        {
+            facingForward = false;
+        }
 
         // keep track of direction pointed for projectile firing
-        if (change != Vector3.zero) {
-            lastNonZeroChange = change;            
-        }
-        if (firePressed)
-        {            
-            FireBullet();
-        }
-    }
-   
-    private void Movement()
-    {
         if (change != Vector3.zero)
         {
-            rigidbody2d.MovePosition(
-                transform.position + change * speed * Time.deltaTime
-            );
-        }        
-    }
-
-    private Tuple<int,int> roomToOffset(GameObject room)
-    {
-        Vector3 pos = room.transform.position;
-        Vector3 diff = pos - transform.position;
-        return new Tuple<int, int>((int)(diff.x / roomWidth), (int)(diff.y / roomHeight));
-    }
-
-    private void SpawnRooms(int numberOfRooms)
-    {
-        DestroyExistingRooms();
-        HashSet<Tuple<int, int>> roomPositions = new HashSet<Tuple<int, int>>();
-        for (int i = 0; i < numberOfRooms; i++)
+            lookDirection = change;
+            moving = true;
+        }
+        if (firePressed)
         {
-            Vector2 position;
-            if (rooms.Count == 0)
-            {
-                position = rigidbody2d.position;
-                roomPositions.Add(new Tuple<int, int>(0, 0));
-            }
-            else
-            {
-                Tuple<int, int> offset = GetNextRoomPosition(roomPositions);
-                if (offset == null)
-                {   // can't add any more rooms
-                    break;
-                }
-                position = new Vector2(transform.position.x + offset.Item1 * roomWidth, transform.position.y + offset.Item2 * roomHeight);
-                roomPositions.Add(offset);
-            }
-            GameObject newRoom = Instantiate(roomPrefab, position, Quaternion.identity);
-            rooms.Add(newRoom);            
+            FireBullet();
         }
-
-        CloseExternalDoors(roomPositions);        
-    }
-
-    private void CloseExternalDoors(HashSet<Tuple<int, int>> roomPositions)
-    {
-        foreach (GameObject room in rooms)
-        {
-            Tuple<int, int> pos = roomToOffset(room);
-            RoomController rC = room.GetComponent<RoomController>();
-            List<Tuple<int, int>> adjPositions = GetEmptyAdjacentRoomPositions(room, roomPositions);
-            foreach (Tuple<int, int> adJpos in adjPositions)
-            {
-                if (adJpos.Item1 < pos.Item1)
-                {
-                    // open to the left
-                    rC.DoorLeft.SetActive(true);
-                }
-                else if(adJpos.Item1 > pos.Item1)
-                {
-                    rC.DoorRight.SetActive(true);
-                }
-                else if (adJpos.Item2 < pos.Item2)
-                {
-                    rC.DoorBottom.SetActive(true);
-                }
-                else if (adJpos.Item2 > pos.Item2)
-                {
-                    rC.DoorTop.SetActive(true);
-                }
-            }
-        }
-    }
-
-    private void DestroyExistingRooms()
-    {
-        foreach (GameObject room in rooms)
-        {
-            Destroy(room);
-        }
-        rooms.Clear();
-    }
-
-    private Tuple<int, int> GetNextRoomPosition(HashSet<Tuple<int, int>> roomPositions)
-    {
-        // copy rooms, before shuffling
-        List<GameObject> rms = rooms.ToList();
-        rms.Shuffle();
-
-        foreach (GameObject room in rms)
-        {            
-            List<Tuple<int, int>> adjPositions = GetEmptyAdjacentRoomPositions(room, roomPositions);
-            if (adjPositions.Count > 0)
-            {                
-                return adjPositions[random.Next(adjPositions.Count)];                
-            }
-
-        }
-        return null;
-    }
-
-    private List<Tuple<int,int>> GetEmptyAdjacentRoomPositions(GameObject room, HashSet<Tuple<int, int>> roomPositions)
-    {
-        Tuple<int, int> rPos = roomToOffset(room);
-        // pick a random direction
-        Tuple<int,int>[] positions = new Tuple<int, int>[] {
-                    // right
-                    new Tuple<int,int>( 1 + rPos.Item1,  rPos.Item2),
-                    // left
-                    new Tuple<int,int>(-1 + rPos.Item1, rPos.Item2),
-                    // top
-                    new Tuple<int,int>(rPos.Item1,  1 + rPos.Item2),
-                    // bottom
-                    new Tuple<int,int>(rPos.Item1, -1 + rPos.Item2),
-                };
-
-        List<Tuple<int, int>> possiblePositions = new List<Tuple<int, int>>();
-        foreach (Tuple<int, int> pos in positions)
-        {
-            if (false == roomPositions.Contains(pos))
-            {
-                possiblePositions.Add(pos);
-            }
-        }
-        return possiblePositions;
     }
 
     private void FireBullet()
     {
         // move the bullet to behind the barrel (need to use the change to get the direction pointing in)
-        Vector2 position = new Vector2(rigidbody2d.position.x + (lastNonZeroChange.x * 0.15f), rigidbody2d.position.y + (lastNonZeroChange.y * 0.15f));        
+        Vector2 position = new Vector2(rb.position.x + (lookDirection.x * 0.15f), rb.position.y + (lookDirection.y * 0.15f));        
 
         Quaternion rotation = Quaternion.identity;        
-        if (lastNonZeroChange.x != 0f)
+        if (lookDirection.x != 0f)
         {
             // need to rotate around the z axis, otherwise it moves you into the 3D plane I think
             rotation = Quaternion.Euler(0, 0, 90);
         }
         GameObject projectileObject = Instantiate(projectilePrefab, position, rotation);        
-        projectileObject.GetComponent<BulletController>().Launch(lastNonZeroChange, projectileSpeed);        
+        projectileObject.GetComponent<BulletController>().Launch(lookDirection, projectileSpeed, projectileScaleMultiplier);
+
+        // sounds
+        PlaySound(zapSound);
     }
 
     private void UpdateAnimation()
     {
-        if (change != Vector3.zero)
-        {
-            animator.SetFloat("moveX", change.x);
-            animator.SetFloat("moveY", change.y);            
-        }
-        if (firePressed)
-        {
-            animator.SetTrigger("fire");
-        }
+        anim.SetBool("moving", moving);        
     }
 
+    // Update is called once per frame
+    protected void PlaySound(AudioClip clip)
+    {
+        audioSource.PlayOneShot(clip);
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Enemy"))
+        {
+            currentHealth -= 1;
+            PlaySound(playerHitSound);
+
+            // knockback - use move towards with a negative amount
+            Vector2 change = Vector2.MoveTowards(transform.position, collision.gameObject.transform.position, -50f * Time.deltaTime);
+            transform.position = change;
+        }
+        //TODO Game Over if currentHealth is 0
+    }
 }
