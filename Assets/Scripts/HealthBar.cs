@@ -9,17 +9,22 @@ public class HealthBar : MonoBehaviour
     [SerializeField] Image heartImage;      
     [SerializeField] float heartWidth = 2f;
 
-    [SerializeField] float anchorX;
-    [SerializeField] float anchorY;
+    [SerializeField] float xOffset = 85f;
+    [SerializeField] float yOffset = 65f;
 
     // Start is called before the first frame update
     void Start()
-    {        
+    {
+        // no need to compare to screen as offset from left
+        float anchorX = xOffset;
+        // need to substract from height as offset from top
+        float anchorY = Screen.height - yOffset;
+
         hearts = new Image[GameState.PlayerMaxHealth];
         for (int i = 0; i < GameState.PlayerMaxHealth; i++)
         {
             Image heart = Instantiate(heartImage, this.gameObject.transform, false);            
-            heart.transform.position = new Vector3(anchorX + (heartWidth * i),
+            heart.transform.position = new Vector3(xOffset + (heartWidth * i),
                 anchorY, transform.position.z);
             hearts[i] = heart;
         }

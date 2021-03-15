@@ -46,6 +46,9 @@ public class PlayerController : MonoBehaviour
         Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, Camera.main.transform.position.z);
         roomCreator = new RoomCreator(this.gameObject, this.roomPrefab, this.roomWidth, this.roomHeight);
         roomCreator.SpawnRooms(numberOfRooms);
+
+        Debug.Log("width: " + Screen.width);
+        Debug.Log("height: " + Screen.height);
     }
 
     public GameObject CreateRoom(Vector2 position)

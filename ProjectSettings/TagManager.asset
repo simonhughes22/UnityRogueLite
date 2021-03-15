@@ -9,6 +9,7 @@ TagManager:
   - Room
   - Door
   - Walls
+  - Heart
   layers:
   - Default
   - TransparentFX
