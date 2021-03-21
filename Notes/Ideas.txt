@@ -1,0 +1,18 @@
+Environment:
+
+	Echo location
+	Super Hot mode - Enemies only move when you do
+	Necro dancer mode - only attack to the beat
+		Similar but based on a visual indicator instead (e..g black and white vs 		color)
+	Bouncy walls and bullets - hitting walls doesn't destroy bullets
+	Pac Man mode - start no bullets, pick up bullets but limited cache
+	Enemies explode upon dying and contact
+
+Player
+
+	Speed up
+	Mini me mode
+	Giant mode
+	Inverted controls?
+	Can't move except from gun ricochet momentum
+	reverse time - but limited how far to reverse

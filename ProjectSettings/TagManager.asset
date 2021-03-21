@@ -8,8 +8,8 @@ TagManager:
   - Enemy
   - Room
   - Door
-  - Walls
   - Heart
+  - Wall
   layers:
   - Default
   - TransparentFX
